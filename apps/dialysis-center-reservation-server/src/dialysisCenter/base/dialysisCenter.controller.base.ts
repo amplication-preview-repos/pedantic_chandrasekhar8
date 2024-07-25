@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { DialysisCenterService } from "../dialysisCenter.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { DialysisCenterCreateInput } from "./DialysisCenterCreateInput";
 import { DialysisCenter } from "./DialysisCenter";
 import { DialysisCenterFindManyArgs } from "./DialysisCenterFindManyArgs";
 import { DialysisCenterWhereUniqueInput } from "./DialysisCenterWhereUniqueInput";
 import { DialysisCenterUpdateInput } from "./DialysisCenterUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class DialysisCenterControllerBase {
-  constructor(protected readonly service: DialysisCenterService) {}
+  constructor(
+    protected readonly service: DialysisCenterService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: DialysisCenter })
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createDialysisCenter(
     @common.Body() data: DialysisCenterCreateInput
   ): Promise<DialysisCenter> {
@@ -47,9 +65,18 @@ export class DialysisCenterControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [DialysisCenter] })
   @ApiNestedQuery(DialysisCenterFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async dialysisCenters(
     @common.Req() request: Request
   ): Promise<DialysisCenter[]> {
@@ -71,9 +98,18 @@ export class DialysisCenterControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: DialysisCenter })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async dialysisCenter(
     @common.Param() params: DialysisCenterWhereUniqueInput
   ): Promise<DialysisCenter | null> {
@@ -100,9 +136,18 @@ export class DialysisCenterControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: DialysisCenter })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateDialysisCenter(
     @common.Param() params: DialysisCenterWhereUniqueInput,
     @common.Body() data: DialysisCenterUpdateInput
@@ -137,6 +182,14 @@ export class DialysisCenterControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: DialysisCenter })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteDialysisCenter(
     @common.Param() params: DialysisCenterWhereUniqueInput
   ): Promise<DialysisCenter | null> {

@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DB_URL")
 }
 
@@ -55,6 +55,18 @@ model DialysisCenter {
   availableAfternoonPlaces Int?
   availableEveningPlaces   Int?
   availableMorningPlaces   Int?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  firstName String?
+  lastName  String?
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  roles     Json
 }
 
 enum EnumHealthcareProviderRole {

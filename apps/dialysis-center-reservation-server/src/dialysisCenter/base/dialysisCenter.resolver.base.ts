@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { DialysisCenter } from "./DialysisCenter";
 import { DialysisCenterCountArgs } from "./DialysisCenterCountArgs";
 import { DialysisCenterFindManyArgs } from "./DialysisCenterFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateDialysisCenterArgs } from "./CreateDialysisCenterArgs";
 import { UpdateDialysisCenterArgs } from "./UpdateDialysisCenterArgs";
 import { DeleteDialysisCenterArgs } from "./DeleteDialysisCenterArgs";
 import { DialysisCenterService } from "../dialysisCenter.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => DialysisCenter)
 export class DialysisCenterResolverBase {
-  constructor(protected readonly service: DialysisCenterService) {}
+  constructor(
+    protected readonly service: DialysisCenterService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "read",
+    possession: "any",
+  })
   async _dialysisCentersMeta(
     @graphql.Args() args: DialysisCenterCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +50,26 @@ export class DialysisCenterResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [DialysisCenter])
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "read",
+    possession: "any",
+  })
   async dialysisCenters(
     @graphql.Args() args: DialysisCenterFindManyArgs
   ): Promise<DialysisCenter[]> {
     return this.service.dialysisCenters(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => DialysisCenter, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "read",
+    possession: "own",
+  })
   async dialysisCenter(
     @graphql.Args() args: DialysisCenterFindUniqueArgs
   ): Promise<DialysisCenter | null> {
@@ -52,7 +80,13 @@ export class DialysisCenterResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => DialysisCenter)
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "create",
+    possession: "any",
+  })
   async createDialysisCenter(
     @graphql.Args() args: CreateDialysisCenterArgs
   ): Promise<DialysisCenter> {
@@ -62,7 +96,13 @@ export class DialysisCenterResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => DialysisCenter)
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "update",
+    possession: "any",
+  })
   async updateDialysisCenter(
     @graphql.Args() args: UpdateDialysisCenterArgs
   ): Promise<DialysisCenter | null> {
@@ -82,6 +122,11 @@ export class DialysisCenterResolverBase {
   }
 
   @graphql.Mutation(() => DialysisCenter)
+  @nestAccessControl.UseRoles({
+    resource: "DialysisCenter",
+    action: "delete",
+    possession: "any",
+  })
   async deleteDialysisCenter(
     @graphql.Args() args: DeleteDialysisCenterArgs
   ): Promise<DialysisCenter | null> {

@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { HealthcareProvider } from "./HealthcareProvider";
 import { HealthcareProviderCountArgs } from "./HealthcareProviderCountArgs";
 import { HealthcareProviderFindManyArgs } from "./HealthcareProviderFindManyArgs";
@@ -22,11 +28,23 @@ import { UpdateHealthcareProviderArgs } from "./UpdateHealthcareProviderArgs";
 import { DeleteHealthcareProviderArgs } from "./DeleteHealthcareProviderArgs";
 import { BookingFindManyArgs } from "../../booking/base/BookingFindManyArgs";
 import { Booking } from "../../booking/base/Booking";
+import { CreatePatientArgs } from "../../patient/base/CreatePatientArgs";
+import { PatientCreateInput } from "../../patient/base/PatientCreateInput";
 import { HealthcareProviderService } from "../healthcareProvider.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => HealthcareProvider)
 export class HealthcareProviderResolverBase {
-  constructor(protected readonly service: HealthcareProviderService) {}
+  constructor(
+    protected readonly service: HealthcareProviderService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "read",
+    possession: "any",
+  })
   async _healthcareProvidersMeta(
     @graphql.Args() args: HealthcareProviderCountArgs
   ): Promise<MetaQueryPayload> {
@@ -36,14 +54,26 @@ export class HealthcareProviderResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [HealthcareProvider])
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "read",
+    possession: "any",
+  })
   async healthcareProviders(
     @graphql.Args() args: HealthcareProviderFindManyArgs
   ): Promise<HealthcareProvider[]> {
     return this.service.healthcareProviders(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => HealthcareProvider, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "read",
+    possession: "own",
+  })
   async healthcareProvider(
     @graphql.Args() args: HealthcareProviderFindUniqueArgs
   ): Promise<HealthcareProvider | null> {
@@ -54,7 +84,13 @@ export class HealthcareProviderResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => HealthcareProvider)
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "create",
+    possession: "any",
+  })
   async createHealthcareProvider(
     @graphql.Args() args: CreateHealthcareProviderArgs
   ): Promise<HealthcareProvider> {
@@ -64,7 +100,13 @@ export class HealthcareProviderResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => HealthcareProvider)
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "update",
+    possession: "any",
+  })
   async updateHealthcareProvider(
     @graphql.Args() args: UpdateHealthcareProviderArgs
   ): Promise<HealthcareProvider | null> {
@@ -84,6 +126,11 @@ export class HealthcareProviderResolverBase {
   }
 
   @graphql.Mutation(() => HealthcareProvider)
+  @nestAccessControl.UseRoles({
+    resource: "HealthcareProvider",
+    action: "delete",
+    possession: "any",
+  })
   async deleteHealthcareProvider(
     @graphql.Args() args: DeleteHealthcareProviderArgs
   ): Promise<HealthcareProvider | null> {
@@ -99,7 +146,13 @@ export class HealthcareProviderResolverBase {
     }
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.ResolveField(() => [Booking], { name: "bookings" })
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "read",
+    possession: "any",
+  })
   async findBookings(
     @graphql.Parent() parent: HealthcareProvider,
     @graphql.Args() args: BookingFindManyArgs
@@ -111,5 +164,21 @@ export class HealthcareProviderResolverBase {
     }
 
     return results;
+  }
+
+  @graphql.Mutation(() => String)
+  async ProviderLogin(
+    @graphql.Args()
+    args: CreatePatientArgs
+  ): Promise<string> {
+    return this.service.ProviderLogin(args);
+  }
+
+  @graphql.Mutation(() => String)
+  async ProviderRegister(
+    @graphql.Args()
+    args: PatientCreateInput
+  ): Promise<string> {
+    return this.service.ProviderRegister(args);
   }
 }

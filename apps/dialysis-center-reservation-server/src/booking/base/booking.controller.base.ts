@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { BookingService } from "../booking.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { BookingCreateInput } from "./BookingCreateInput";
 import { Booking } from "./Booking";
 import { BookingFindManyArgs } from "./BookingFindManyArgs";
 import { BookingWhereUniqueInput } from "./BookingWhereUniqueInput";
 import { BookingUpdateInput } from "./BookingUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class BookingControllerBase {
-  constructor(protected readonly service: BookingService) {}
+  constructor(
+    protected readonly service: BookingService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Booking })
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createBooking(
     @common.Body() data: BookingCreateInput
   ): Promise<Booking> {
@@ -72,9 +90,18 @@ export class BookingControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Booking] })
   @ApiNestedQuery(BookingFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async bookings(@common.Req() request: Request): Promise<Booking[]> {
     const args = plainToClass(BookingFindManyArgs, request.query);
     return this.service.bookings({
@@ -105,9 +132,18 @@ export class BookingControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Booking })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async booking(
     @common.Param() params: BookingWhereUniqueInput
   ): Promise<Booking | null> {
@@ -145,9 +181,18 @@ export class BookingControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Booking })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateBooking(
     @common.Param() params: BookingWhereUniqueInput,
     @common.Body() data: BookingUpdateInput
@@ -207,6 +252,14 @@ export class BookingControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Booking })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Booking",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteBooking(
     @common.Param() params: BookingWhereUniqueInput
   ): Promise<Booking | null> {
@@ -245,5 +298,73 @@ export class BookingControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.Patch("/bookings/:id/complete")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async CompleteBooking(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.CompleteBooking(body);
+  }
+
+  @common.Post("/bookings")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async CreateBooking(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.CreateBooking(body);
+  }
+
+  @common.Get("/bookings/patient/:id")
+  @swagger.ApiOkResponse({
+    type: Booking,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ViewBookingsForPatient(
+    @common.Body()
+    body: string
+  ): Promise<Booking[]> {
+    return this.service.ViewBookingsForPatient(body);
+  }
+
+  @common.Get("/bookings/day/:date")
+  @swagger.ApiOkResponse({
+    type: Booking,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ViewDailyBookings(
+    @common.Body()
+    body: string
+  ): Promise<Booking[]> {
+    return this.service.ViewDailyBookings(body);
   }
 }

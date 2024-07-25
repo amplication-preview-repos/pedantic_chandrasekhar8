@@ -17,6 +17,9 @@ import {
   Booking as PrismaBooking,
 } from "@prisma/client";
 
+import { CreatePatientArgs } from "../../patient/base/CreatePatientArgs";
+import { PatientCreateInput } from "../../patient/base/PatientCreateInput";
+
 export class HealthcareProviderServiceBase {
   constructor(protected readonly prisma: PrismaService) {}
 
@@ -61,5 +64,11 @@ export class HealthcareProviderServiceBase {
         where: { id: parentId },
       })
       .bookings(args);
+  }
+  async ProviderLogin(args: CreatePatientArgs): Promise<string> {
+    throw new Error("Not implemented");
+  }
+  async ProviderRegister(args: PatientCreateInput): Promise<string> {
+    throw new Error("Not implemented");
   }
 }
