@@ -1,0 +1,78 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DB_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model HealthcareProvider {
+  id        String                      @id @default(cuid())
+  createdAt DateTime                    @default(now())
+  updatedAt DateTime                    @updatedAt
+  name      String?
+  email     String?
+  password  String?
+  role      EnumHealthcareProviderRole?
+  bookings  Booking[]
+}
+
+model Patient {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  name      String?
+  email     String?
+  password  String?
+  bookings  Booking[]
+}
+
+model Booking {
+  id                   String                     @id @default(cuid())
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  startDate            DateTime?
+  endDate              DateTime?
+  preferredShift       EnumBookingPreferredShift?
+  photoDialysisCard    Json?
+  telephoneContacts    String?
+  medicalPrescription  Json?
+  patient              Patient?                   @relation(fields: [patientId], references: [id])
+  patientId            String?
+  healthcareProvider   HealthcareProvider?        @relation(fields: [healthcareProviderId], references: [id])
+  healthcareProviderId String?
+}
+
+model DialysisCenter {
+  id                       String   @id @default(cuid())
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  seatCount                Int?
+  shiftMorning             Boolean?
+  shiftAfternoon           Boolean?
+  shiftEvening             Boolean?
+  availableAfternoonPlaces Int?
+  availableEveningPlaces   Int?
+  availableMorningPlaces   Int?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  firstName String?
+  lastName  String?
+  username  String   @unique
+  email     String?  @unique
+  password  String
+  roles     Json
+}
+
+enum EnumHealthcareProviderRole {
+  Option1
+}
+
+enum EnumBookingPreferredShift {
+  Option1
+}
